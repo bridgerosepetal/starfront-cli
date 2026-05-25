@@ -1,0 +1,261 @@
+{
+  "schemaVersion": "1.0",
+  "component": {
+    "name": "button-pretty",
+    "kind": "astro-component",
+    "files": {
+      "markup": "src/shared/ui/button-pretty/button-pretty.astro",
+      "style": "src/shared/ui/button-pretty/button-pretty.scss",
+      "manager": "src/shared/ui/button-pretty/button-pretty.ts",
+      "index": "src/shared/ui/button-pretty/index.ts"
+    }
+  },
+  "props": [
+    {
+      "name": "variant",
+      "type": "\"primary\" | \"secondary\"",
+      "optional": true,
+      "default": "primary"
+    },
+    {
+      "name": "disabled",
+      "type": "boolean",
+      "optional": true,
+      "default": false
+    }
+  ],
+  "markup": {
+    "root": {
+      "kind": "element",
+      "tag": "button",
+      "attributes": {
+        "type": "button",
+        "disabled": "{disabled}"
+      },
+      "style": {
+        "mode": "bem-block"
+      },
+      "children": [
+        {
+          "kind": "element",
+          "tag": "span",
+          "name": "icon-start",
+          "style": {
+            "mode": "bem-element"
+          },
+          "attributes": {},
+          "children": [
+            {
+              "kind": "component",
+              "component": "Icon",
+              "props": {
+                "name": "arrow-left"
+              },
+              "children": []
+            }
+          ]
+        },
+        {
+          "kind": "element",
+          "tag": "span",
+          "name": "text",
+          "style": {
+            "mode": "bem-element"
+          },
+          "attributes": {},
+          "children": [
+            {
+              "kind": "slot",
+              "name": "default"
+            }
+          ]
+        },
+        {
+          "kind": "element",
+          "tag": "span",
+          "name": "icon-end",
+          "style": {
+            "mode": "bem-element"
+          },
+          "attributes": {},
+          "children": [
+            {
+              "kind": "component",
+              "component": "Icon",
+              "props": {
+                "name": "arrow-right"
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "styles": {
+    "language": "scss",
+    "media": {
+      "default": "desktop",
+      "supported": ["desktop", "tablet", "mobile"]
+    },
+    "block": {
+      "declarations": {
+        "desktop": {
+          "base": {
+            "display": "inline-flex",
+            "align-items": "center"
+          },
+          "hover": {
+            "opacity": "0.85"
+          },
+          "active": {
+            "transform": "translateY(1px)"
+          },
+          "disabled": {
+            "opacity": "0.5",
+            "cursor": "not-allowed"
+          }
+        }
+      },
+      "modifiers": [
+        {
+          "name": "variant",
+          "declarations": {},
+          "suffixes": [
+            {
+              "name": "primary",
+              "declarations": {
+                "desktop": {
+                  "base": {
+                    "background-color": "var(--color-primary)",
+                    "color": "var(--color-white)"
+                  },
+                  "hover": {
+                    "background-color": "var(--color-primary-hover)"
+                  }
+                }
+              },
+              "customSelectors": []
+            },
+            {
+              "name": "secondary",
+              "declarations": {
+                "desktop": {
+                  "base": {
+                    "background-color": "var(--color-secondary)",
+                    "color": "var(--color-black)"
+                  },
+                  "hover": {
+                    "background-color": "var(--color-secondary-hover)"
+                  }
+                }
+              },
+              "customSelectors": []
+            }
+          ],
+          "customSelectors": []
+        },
+        {
+          "name": "size",
+          "declarations": {},
+          "suffixes": [
+            {
+              "name": "s",
+              "declarations": {
+                "desktop": {
+                  "base": {
+                    "height": "32px",
+                    "padding": "0 12px"
+                  }
+                }
+              },
+              "customSelectors": []
+            },
+            {
+              "name": "m",
+              "declarations": {
+                "desktop": {
+                  "base": {
+                    "height": "40px",
+                    "padding": "0 16px"
+                  }
+                }
+              },
+              "customSelectors": []
+            },
+            {
+              "name": "l",
+              "declarations": {
+                "desktop": {
+                  "base": {
+                    "height": "48px",
+                    "padding": "0 20px"
+                  },
+                  "hover": {
+                    "transform": "scale(1.02)"
+                  }
+                },
+                "mobile": {
+                  "base": {
+                    "height": "44px",
+                    "padding": "0 16px"
+                  }
+                }
+              },
+              "customSelectors": []
+            }
+          ],
+          "customSelectors": []
+        },
+        {
+          "name": "fancy",
+          "declarations": {
+            "desktop": {
+              "base": {
+                "box-shadow": "0 4px 16px rgb(0 0 0 / 12%)"
+              },
+              "hover": {
+                "box-shadow": "0 6px 20px rgb(0 0 0 / 16%)"
+              }
+            }
+          },
+          "suffixes": [],
+          "customSelectors": []
+        }
+      ],
+      "elements": []
+    }
+  },
+  "manager": {
+    "enabled": true,
+    "file": "src/shared/ui/button-pretty/button-pretty.ts",
+    "instance": {
+      "kind": "class",
+      "name": "ButtonPrettyManager",
+      "exportName": "ButtonPrettyManager"
+    },
+    "attach": {
+      "mode": "auto-on-page",
+      "selector": ".button-pretty"
+    },
+    "events": [
+      {
+        "target": "root",
+        "event": "click",
+        "handler": "handleClick"
+      }
+    ],
+    "states": [
+      {
+        "name": "disabled",
+        "source": "prop-or-attribute",
+        "attribute": "disabled"
+      }
+    ]
+  },
+  "validation": {
+    "valid": true,
+    "errors": [],
+    "warnings": []
+  }
+}

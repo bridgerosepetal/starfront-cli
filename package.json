@@ -1,0 +1,74 @@
+{
+  "name": "@bridgerosepetal/starfront-cli",
+  "version": "0.4.0",
+  "description": "CLI tooling for Starfront projects.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "starfront": "./dist/index.js",
+    "starfront-cli": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "lint": "eslint .",
+    "pack:check": "npm pack --dry-run",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "cli",
+    "astro",
+    "starfront"
+  ],
+  "author": "Nikolay Kulikov <slashoptiontwo@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bridgerosepetal/starfront-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bridgerosepetal/starfront-cli/issues"
+  },
+  "homepage": "https://github.com/bridgerosepetal/starfront-cli#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@astrojs/compiler": "^4.0.0",
+    "commander": "^14.0.3",
+    "magic-string": "^0.30.21",
+    "parse5": "^8.0.1",
+    "recast": "^0.23.11",
+    "ts-morph": "^28.0.0",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@front-cmdt/format": "^1.4.5",
+    "@types/node": "^25.9.1",
+    "eslint": "^10.4.0",
+    "sass": "^1.94.2",
+    "tsup": "^8.5.1",
+    "tsx": "^4.22.3",
+    "typescript-eslint": "^8.59.4",
+    "vitest": "^4.0.13"
+  }
+}

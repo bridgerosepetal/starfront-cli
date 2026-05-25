@@ -1,0 +1,15 @@
+---
+import type { HTMLAttributes } from 'astro/types'
+
+type Props = HTMLAttributes<'div'> & {
+    class?: string
+}
+
+const { class: className, ...props } = Astro.props as Props
+
+export { ComponentMinimal }
+---
+
+<div class:list={['component-minimal', className]} {...props}>
+  <slot />
+</div>

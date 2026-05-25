@@ -1,0 +1,42 @@
+@use "@shared/styles/utils" as *;
+
+.button {
+  $self: &;
+  background: white;
+  transition: $transition;
+
+  @include hover() {
+    background: black;
+
+    #{$self}__text {
+      color: white;
+    }
+  }
+
+  &__icon {
+    width: 16px;
+    aspect-ratio: 1 / 1;
+    height: 16px;
+  }
+
+  &__text {
+    font-size: 16px;
+    color: black;
+  }
+}
+
+@media #{media("<", d)} {
+  .button {
+    &__text {
+      font-size: 14px;
+    }
+  }
+}
+
+@media #{media("<", m)} {
+  .button {
+    &__text {
+      font-size: 12px;
+    }
+  }
+}

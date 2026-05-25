@@ -1,0 +1,17 @@
+*
+
+!.gitignore
+!.prettierignore
+!LICENSE
+!README.md
+!eslint.config.js
+!package-lock.json
+!package.json
+!prettier.config.js
+!tsconfig.json
+!tsup.config.ts
+
+!src/
+!src/**
+!tests/
+!tests/**

@@ -1,0 +1,14 @@
+@use "@shared/styles/utils" as *;
+
+.component-minimal {
+}
+
+@media #{media("<", d)} {
+  .component-minimal {
+  }
+}
+
+@media #{media("<", m)} {
+  .component-minimal {
+  }
+}
