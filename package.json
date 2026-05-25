@@ -12,8 +12,8 @@
     }
   },
   "bin": {
-    "starfront": "./dist/index.js",
-    "starfront-cli": "./dist/index.js"
+    "starfront": "dist/index.js",
+    "starfront-cli": "dist/index.js"
   },
   "files": [
     "dist",
