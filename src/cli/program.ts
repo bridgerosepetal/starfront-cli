@@ -3,17 +3,20 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { createComponent, deleteComponent, listComponents } from '../components/repository.ts'
+import { cliArgsWithOptions, runStarfrontCommand } from '../command-vocabulary.ts'
 import { DEFAULT_MEDIA } from '../constants.ts'
-import { readComponent } from '../read.ts'
+import { startStarfrontMcpServer } from '../mcp/server.ts'
 import type { ReadOptions } from '../types.ts'
 import { parseMedia } from '../utils/media.ts'
-import { validateComponent } from '../validation.ts'
-
-import { dispatchUpdate } from './dispatch.ts'
 
 function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2))
+}
+
+async function runAndPrint(args: string[], cwd: string): Promise<void> {
+  const result = await runStarfrontCommand({ args, cwd })
+
+  printJson(result.result)
 }
 
 async function packageVersion(): Promise<string> {
@@ -43,9 +46,11 @@ function addUpdateOptions(command: Command): Command {
     .option('--node <path>', 'Parent node path, usually 1 for root')
     .option('--tag <tag>', 'HTML tag to append')
     .option('--value <value>', 'Mutation value')
+    .option('--prop-name <name>', 'Prop that drives a BEM modifier class:list item')
     .option('--name <name>', 'BEM element name for HTML nodes')
     .option('--component <name>', 'Astro component to append')
-    .option('--slot [name]', 'Append a slot')
+    .option('--is-slot', 'Append a slot')
+    .option('--slot-name <name>', 'Named slot to append; requires --is-slot')
     .option('--text <content>', 'Append text content')
     .option('--expression <content>', 'Append an Astro expression')
     .option('--sibling <pathOrName>', 'Insert before or after a sibling inside the parent node')
@@ -54,7 +59,7 @@ function addUpdateOptions(command: Command): Command {
     .option('--prop <key=value>', 'Component prop', collectOption, [])
     .option('--condition <expression>', 'Wrap node in a conditional expression')
     .option('--targets <names>', 'Comma-separated element names')
-    .option('--media <media>', 'desktop, tablet, or phone', parseMedia, DEFAULT_MEDIA)
+    .option('--media <media>', 'desktop, tablet, or mobile', parseMedia, DEFAULT_MEDIA)
     .option('--state <state>', 'State selector for element declarations: hover, active, disabled')
     .option('--base <content>', 'Base CSS declarations')
     .option('--hover <content>', 'Hover CSS declarations')
@@ -74,20 +79,28 @@ export async function createProgram(): Promise<Command> {
 
   const ui = program.command('ui').description('Inspect and edit UI artifacts')
 
+  program
+    .command('mcp')
+    .description('Start the Starfront MCP server over stdio')
+    .option('--project <path>', 'Project directory for Starfront MCP tools')
+    .action(async (options: { project?: string }) => {
+      await startStarfrontMcpServer({ projectRoot: options.project })
+    })
+
   ui.command('list')
     .description('List UI components')
     .action(async () => {
-      printJson(await listComponents(getCwd()))
+      await runAndPrint(['ui', 'list'], getCwd())
     })
 
   const component = ui.command('component').description('UI component commands')
 
   component.command('list').action(async () => {
-    printJson(await listComponents(getCwd()))
+    await runAndPrint(['ui', 'component', 'list'], getCwd())
   })
 
   component.command('create <name> [template]').action(async (name, template) => {
-    printJson(await createComponent(name, template ?? 'default', getCwd()))
+    await runAndPrint(['ui', 'component', 'create', name, template ?? 'default'], getCwd())
   })
 
   component
@@ -95,20 +108,23 @@ export async function createProgram(): Promise<Command> {
     .option('--depth <depth>', 'Limit markup tree depth')
     .option('--element <nameOrPath>', 'Read a specific element by BEM name or path')
     .action(async (name: string, section: string | undefined, options: ReadOptions) => {
-      printJson(await readComponent(name, section ?? 'all', { ...options, cwd: getCwd() }))
+      await runAndPrint(
+        cliArgsWithOptions(['ui', 'component', 'read', name, section ?? 'all'], { ...options }),
+        getCwd(),
+      )
     })
 
   component.command('delete <name>').action(async name => {
-    printJson(await deleteComponent(name, getCwd()))
+    await runAndPrint(['ui', 'component', 'delete', name], getCwd())
   })
 
   component.command('validate <name>').action(async name => {
-    printJson(await validateComponent(name, getCwd()))
+    await runAndPrint(['ui', 'component', 'validate', name], getCwd())
   })
 
   addUpdateOptions(component.command('update <name> [tokens...]')).action(
     async (name: string, tokens: string[], options: Record<string, unknown>) => {
-      printJson(await dispatchUpdate(name, tokens ?? [], options, getCwd()))
+      await runAndPrint(cliArgsWithOptions(['ui', 'component', 'update', name, ...(tokens ?? [])], options), getCwd())
     },
   )
 

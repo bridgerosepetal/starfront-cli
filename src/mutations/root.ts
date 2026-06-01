@@ -36,7 +36,20 @@ export async function readWritableRoot(name: string, cwd?: string): Promise<Writ
 }
 
 export async function writeWritableRoot(files: ComponentFiles, parts: AstroParts, root: MarkupNode): Promise<void> {
+  clearExpressionRaw(root)
   await writeFile(files.markup, joinAstro({ ...parts, body: renderMarkupNode(root) }))
+}
+
+function clearExpressionRaw(node: MarkupNode): void {
+  if (node.kind === 'expression') {
+    delete node.raw
+  }
+
+  if ('children' in node) {
+    for (const child of node.children) {
+      clearExpressionRaw(child)
+    }
+  }
 }
 
 function createAppendNode(blockName: string, options: AppendOptions): MarkupNode {
@@ -54,8 +67,12 @@ function createAppendNode(blockName: string, options: AppendOptions): MarkupNode
     return { kind: 'component', component: options.component, props, children: [] }
   }
 
-  if (options.slot !== undefined) {
-    const name = typeof options.slot === 'string' && options.slot ? options.slot : 'default'
+  if (!options.isSlot && options.slotName) {
+    throw new Error('slotName requires isSlot: true')
+  }
+
+  if (options.isSlot) {
+    const name = options.slotName || 'default'
     return { kind: 'slot', name, children: [] }
   }
 
@@ -68,7 +85,7 @@ function createAppendNode(blockName: string, options: AppendOptions): MarkupNode
   }
 
   if (!options.tag) {
-    throw new Error('Provide one of --tag, --component, --slot, --text, or --expression')
+    throw new Error('Provide one of --tag, --component, --is-slot, --text, or --expression')
   }
 
   if ((options.name || bemClass) && !attributes.class) {

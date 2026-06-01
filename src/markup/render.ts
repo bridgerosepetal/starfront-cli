@@ -52,7 +52,7 @@ export function renderMarkupNode(node: MarkupNode, indentLevel = 0): string {
       return node.raw
         .trim()
         .split(/\r?\n/)
-        .map(line => `${indent}${line}`)
+        .map(line => `${indent}${line.trim()}`)
         .join('\n')
     }
 
@@ -62,7 +62,7 @@ export function renderMarkupNode(node: MarkupNode, indentLevel = 0): string {
       return `${indent}{${node.expression}}`
     }
 
-    return `${indent}{\n${indent}  ${node.expression} && (\n${children}\n${indent}  )\n${indent}}`
+    return `${indent}{\n${indent}  (${node.expression}) && (\n${children}\n${indent}  )\n${indent}}`
   }
 
   const tagName = node.kind === 'component' ? node.component : node.tag

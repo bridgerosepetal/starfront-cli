@@ -25,7 +25,8 @@ export async function appendSlot(name: string, options: SlotOptions): Promise<Ma
   return appendRootNode(name, {
     cwd: options.cwd,
     node: options.node ?? ROOT_PATH,
-    slot: options.name ?? 'default',
+    isSlot: true,
+    slotName: options.name ?? 'default',
   })
 }
 

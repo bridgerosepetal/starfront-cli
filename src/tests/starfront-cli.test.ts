@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -123,11 +123,121 @@ describe('starfront component MVP', () => {
     })
   })
 
+  it('reports invalid SCSS during component validation', async () => {
+    const projectRoot = await createTempProject()
+
+    await starfront.createComponent('button', 'default', projectRoot)
+
+    const stylePath = path.join(projectRoot, 'src', 'shared', 'ui', 'button', 'button.scss')
+    await writeFile(stylePath, `${await readFile(stylePath, 'utf8')}\n}\n`)
+
+    const result = await starfront.validateComponent('button', projectRoot)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Invalid SCSS: unexpected closing brace at 16:1')
+  })
+
+  it('requires the root to use class:list during component validation', async () => {
+    const projectRoot = await createTempProject()
+
+    await starfront.createComponent('button', 'default', projectRoot)
+
+    const astroPath = path.join(projectRoot, 'src', 'shared', 'ui', 'button', 'Button.astro')
+    const astro = await readFile(astroPath, 'utf8')
+
+    await writeFile(astroPath, astro.replace('class:list={["button", className]}', 'class="button"'))
+
+    const result = await starfront.validateComponent('button', projectRoot)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Root must define class:list')
+  })
+
+  it('requires class:list to contain the component block class during validation', async () => {
+    const projectRoot = await createTempProject()
+
+    await starfront.createComponent('button', 'default', projectRoot)
+
+    const astroPath = path.join(projectRoot, 'src', 'shared', 'ui', 'button', 'Button.astro')
+    const astro = await readFile(astroPath, 'utf8')
+
+    await writeFile(astroPath, astro.replace('class:list={["button", className]}', 'class:list={[className]}'))
+
+    const result = await starfront.validateComponent('button', projectRoot)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Root class:list must include BEM block class "button"')
+  })
+
+  it('requires class:list to contain className during validation', async () => {
+    const projectRoot = await createTempProject()
+
+    await starfront.createComponent('button', 'default', projectRoot)
+
+    const astroPath = path.join(projectRoot, 'src', 'shared', 'ui', 'button', 'Button.astro')
+    const astro = await readFile(astroPath, 'utf8')
+
+    await writeFile(astroPath, astro.replace('class:list={["button", className]}', 'class:list={["button"]}'))
+
+    const result = await starfront.validateComponent('button', projectRoot)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Root class:list must include className')
+  })
+
+  it('derives the component block name from the Astro filename during validation', async () => {
+    const projectRoot = await createTempProject()
+
+    await starfront.createComponent('button', 'default', projectRoot)
+
+    const componentDir = path.join(projectRoot, 'src', 'shared', 'ui', 'button')
+    const astroPath = path.join(componentDir, 'Button.astro')
+    const renamedAstroPath = path.join(componentDir, 'CardPanel.astro')
+    const stylePath = path.join(componentDir, 'button.scss')
+    const renamedStylePath = path.join(componentDir, 'card-panel.scss')
+    const astro = await readFile(astroPath, 'utf8')
+    const scss = await readFile(stylePath, 'utf8')
+
+    await writeFile(
+      astroPath,
+      astro
+        .replace('export { Button }', 'export { CardPanel }')
+        .replace('class:list={["button", className]}', 'class:list={["card-panel", className]}')
+        .replace('@use "./button.scss" as *;', '@use "./card-panel.scss" as *;'),
+    )
+    await writeFile(stylePath, scss.replace('.button', '.card-panel'))
+    await rename(astroPath, renamedAstroPath)
+    await rename(stylePath, renamedStylePath)
+
+    expect(await starfront.validateComponent('button', projectRoot)).toEqual({
+      valid: true,
+      errors: [],
+      warnings: [],
+    })
+  })
+
+  it('requires the SCSS filename to match the Astro filename during validation', async () => {
+    const projectRoot = await createTempProject()
+
+    await starfront.createComponent('button', 'default', projectRoot)
+
+    const componentDir = path.join(projectRoot, 'src', 'shared', 'ui', 'button')
+    const astroPath = path.join(componentDir, 'Button.astro')
+    const renamedAstroPath = path.join(componentDir, 'CardPanel.astro')
+
+    await rename(astroPath, renamedAstroPath)
+
+    const result = await starfront.validateComponent('button', projectRoot)
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain('Missing SCSS file: src/shared/ui/button/card-panel.scss')
+  })
+
   it('runs prop hooks for Tag roots and class:list variants', async () => {
     const projectRoot = await createTempProject()
 
     await starfront.createComponent('button', 'default', projectRoot)
-    await starfront.createProp('button', 'tag', "'button' | 'a'", undefined, {
+    await starfront.createProp('button', 'tag', "'button' | 'a'", 'button', {
       cwd: projectRoot,
       optional: true,
     })
@@ -137,7 +247,7 @@ describe('starfront component MVP', () => {
 
     const astro = await readFile(path.join(projectRoot, 'src', 'shared', 'ui', 'button', 'Button.astro'), 'utf8')
 
-    expect(astro).toContain('const Tag: Props["tag"] = isLink ?')
+    expect(astro).toContain('const Tag: Props["tag"] = tag ?? \'button\'')
     expect(astro).toContain('<Tag')
     expect(astro).toContain('{...props as Record<string, unknown>}')
     expect(astro).toContain('variant && `button_variant-${variant}`')
@@ -162,7 +272,7 @@ describe('starfront component MVP', () => {
     const astro = await readFile(path.join(projectRoot, 'src', 'shared', 'ui', 'button', 'Button.astro'), 'utf8')
 
     expect(astro.match(/\btag\??:/g)).toHaveLength(1)
-    expect(astro.match(/const Tag: Props\["tag"] = isLink \? "a" : tag \? tag : "button"/g)).toHaveLength(1)
+    expect(astro.match(/const Tag: Props\["tag"] = tag \?\? "div"/g)).toHaveLength(1)
   })
 
   it('appends and wraps slots while rejecting duplicate slot names', async () => {

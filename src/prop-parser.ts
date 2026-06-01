@@ -7,6 +7,12 @@ export type ComponentProp = {
   default?: string
 }
 
+export type PropSignatureMatch = {
+  start: number
+  end: number
+  ambiguous?: boolean
+}
+
 type TypeScript = typeof import('typescript')
 
 const require = createRequire(import.meta.url)
@@ -68,6 +74,66 @@ function collectTypeLiteralNodes(
   return literals
 }
 
+function collectPropsInterfaceNames(frontmatter: string): Set<string> {
+  const ts = getTypescript()
+  const sourceFile = createSourceFile(frontmatter)
+  const names = new Set<string>()
+  const propsAlias = sourceFile.statements.find(
+    statement => ts.isTypeAliasDeclaration(statement) && statement.name.text === 'Props',
+  )
+
+  if (!propsAlias || !ts.isTypeAliasDeclaration(propsAlias)) {
+    return names
+  }
+
+  function visit(node: import('typescript').Node): void {
+    if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName)) {
+      names.add(node.typeName.text)
+    }
+
+    ts.forEachChild(node, visit)
+  }
+
+  visit(propsAlias.type)
+  names.delete('HTMLAttributes')
+  names.delete('Props')
+  return names
+}
+
+function collectPropSignatures(frontmatter: string, propName: string, group?: string): PropSignatureMatch[] {
+  const ts = getTypescript()
+  const sourceFile = createSourceFile(frontmatter)
+  const matches: PropSignatureMatch[] = []
+
+  function maybeAdd(signature: import('typescript').PropertySignature): void {
+    if (signature.name.getText(sourceFile) === propName) {
+      matches.push({ start: signature.getStart(sourceFile), end: signature.getEnd() })
+    }
+  }
+
+  for (const statement of sourceFile.statements) {
+    if (ts.isInterfaceDeclaration(statement)) {
+      if (group && statement.name.text !== group) {
+        continue
+      }
+
+      for (const member of statement.members.filter(ts.isPropertySignature)) {
+        maybeAdd(member)
+      }
+    }
+
+    if (!group && ts.isTypeAliasDeclaration(statement) && statement.name.text === 'Props') {
+      for (const typeLiteral of collectTypeLiteralNodes(statement.type)) {
+        for (const member of typeLiteral.members.filter(ts.isPropertySignature)) {
+          maybeAdd(member)
+        }
+      }
+    }
+  }
+
+  return matches
+}
+
 function propFromSignature(
   signature: import('typescript').PropertySignature,
   defaults: Map<string, string>,
@@ -88,10 +154,14 @@ export function parseProps(frontmatter: string): ComponentProp[] {
   const ts = getTypescript()
   const sourceFile = createSourceFile(frontmatter)
   const defaults = parseDestructuredDefaults(frontmatter)
+  const propsInterfaceNames = collectPropsInterfaceNames(frontmatter)
   const props: ComponentProp[] = []
 
   for (const statement of sourceFile.statements) {
-    if (ts.isInterfaceDeclaration(statement) && statement.name.text === 'Props') {
+    if (
+      ts.isInterfaceDeclaration(statement) &&
+      (statement.name.text === 'Props' || propsInterfaceNames.has(statement.name.text))
+    ) {
       props.push(
         ...statement.members
           .filter(ts.isPropertySignature)
@@ -110,4 +180,18 @@ export function parseProps(frontmatter: string): ComponentProp[] {
   }
 
   return props
+}
+
+export function findPropSignature(
+  frontmatter: string,
+  propName: string,
+  group?: string,
+): PropSignatureMatch | undefined {
+  const matches = collectPropSignatures(frontmatter, propName, group)
+
+  if (matches.length > 1) {
+    return { start: matches[0].start, end: matches[0].end, ambiguous: true }
+  }
+
+  return matches[0]
 }

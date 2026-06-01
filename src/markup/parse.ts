@@ -81,6 +81,25 @@ function expressionToString(node: { children: AstroNode[] }): string {
     .join(' ')
 }
 
+function conditionFromExpressionRaw(raw: string | undefined): string | undefined {
+  const inner = raw?.replace(/^\{\s*/, '').replace(/\s*\}$/, '')
+  const match = inner?.match(/^\s*\(?\s*([A-Za-z_$][\w$.[\]'"]*)\s*\)?\s*&&\s*\(/)
+
+  return match?.[1]
+}
+
+function expressionChildren(
+  node: AstroNode & { children: AstroNode[] },
+  blockName: string,
+  pathValue: string,
+  source: string,
+  isConditional: boolean,
+): MarkupNode[] {
+  const children = isConditional ? node.children.filter(isTagLikeNode) : node.children
+
+  return convertChildren(children, blockName, pathValue, source)
+}
+
 function convertAstroNode(node: AstroNode, blockName: string, pathValue: string, source: string): MarkupNode | null {
   if (node.type === 'text' && 'value' in node) {
     const value = node.value.trim()
@@ -88,12 +107,15 @@ function convertAstroNode(node: AstroNode, blockName: string, pathValue: string,
   }
 
   if (node.type === 'expression' && isParentLikeNode(node)) {
+    const raw = sourceForExpression(node, source)
+    const condition = conditionFromExpressionRaw(raw)
+
     return {
       kind: 'expression',
       path: pathValue,
-      expression: expressionToString(node),
-      ...(sourceForExpression(node, source) ? { raw: sourceForExpression(node, source) } : {}),
-      children: convertChildren(node.children, blockName, pathValue, source),
+      expression: condition ?? expressionToString(node),
+      ...(raw ? { raw } : {}),
+      children: expressionChildren(node, blockName, pathValue, source, Boolean(condition)),
     }
   }
 

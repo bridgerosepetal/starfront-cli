@@ -1,6 +1,6 @@
 {
   "name": "@bridgerosepetal/starfront-cli",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "CLI tooling for Starfront projects.",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,7 +13,8 @@
   },
   "bin": {
     "starfront": "dist/index.js",
-    "starfront-cli": "dist/index.js"
+    "starfront-cli": "dist/index.js",
+    "starfront-mcp": "dist/mcp.js"
   },
   "files": [
     "dist",
@@ -53,12 +54,16 @@
   },
   "dependencies": {
     "@astrojs/compiler": "^4.0.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "commander": "^14.0.3",
     "magic-string": "^0.30.21",
     "parse5": "^8.0.1",
+    "postcss": "^8.5.15",
     "recast": "^0.23.11",
+    "sass-parser": "^0.4.45",
     "ts-morph": "^28.0.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

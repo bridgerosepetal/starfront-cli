@@ -83,7 +83,8 @@ export type AppendOptions = {
   tag?: string
   name?: string
   component?: string
-  slot?: string | boolean
+  isSlot?: boolean
+  slotName?: string
   text?: string
   expression?: string
   attr?: string[]
@@ -104,6 +105,20 @@ export type StyleDeclareOptions = {
   disabled?: string
 }
 
+export type StyleDeleteOptions = {
+  cwd?: string
+  media?: Media
+  state?: 'hover' | 'active' | 'disabled'
+}
+
+export type ModifierStyleDeclareOptions = StyleDeclareOptions & {
+  value?: string
+}
+
+export type ModifierStyleDeleteOptions = StyleDeleteOptions & {
+  value?: string
+}
+
 export type PropCreateOptions = {
   cwd?: string
   optional?: boolean
@@ -112,10 +127,25 @@ export type PropCreateOptions = {
   destructure?: boolean
 }
 
+export type PropUpdateOptions = PropCreateOptions & {
+  type?: string
+  defaultValue?: string
+}
+
+export type PropDeleteOptions = {
+  cwd?: string
+  group?: string
+}
+
 export type RootSetOptions = {
   cwd?: string
   tag?: string
   component?: string
+}
+
+export type RootDeleteOptions = {
+  cwd?: string
+  node?: string
 }
 
 export type RootAttributeOptions = {

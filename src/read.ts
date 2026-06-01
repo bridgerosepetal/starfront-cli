@@ -7,6 +7,7 @@ import { DEFAULT_MEDIA, SCHEMA_VERSION, SUPPORTED_MEDIA } from './constants.ts'
 import { readMarkupRoot } from './markup/parse.ts'
 import { findElementByName, findNodeByPath, limitDepth } from './markup/query.ts'
 import { parseProps } from './props.ts'
+import { assertScssBalancedBraces } from './scss.ts'
 import { parseStyleSelectors } from './style-selectors.ts'
 import type { MarkupNode, ReadOptions } from './types.ts'
 import { normalizeProjectRoot } from './utils/project.ts'
@@ -45,6 +46,16 @@ export async function readComponent(name: string, section = 'all', options: Read
   ])
   const parts = splitAstro(astroCode)
   const root = await readMarkupRoot(astroCode, info.name)
+  const styleValidationErrors: string[] = []
+
+  if (styleContent) {
+    try {
+      assertScssBalancedBraces(styleContent)
+    } catch (error) {
+      styleValidationErrors.push(error instanceof Error ? error.message : 'Invalid SCSS')
+    }
+  }
+
   const response = {
     schemaVersion: SCHEMA_VERSION,
     component: {
@@ -84,6 +95,10 @@ export async function readComponent(name: string, section = 'all', options: Read
       return selectRoot(root, options)
     case 'styles':
     case 'style':
+      if (styleValidationErrors.length) {
+        throw new Error(styleValidationErrors[0])
+      }
+
       return response.styles
     case 'validation':
       return response.validation

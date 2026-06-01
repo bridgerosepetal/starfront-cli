@@ -1,53 +1,33 @@
 import { readFile, writeFile } from 'node:fs/promises'
 
 import { joinAstro, splitAstro } from './astro/file.ts'
+import { withComponentLock } from './component-locks.ts'
 import { absoluteFiles, resolveComponent } from './components/repository.ts'
 import { runPropCreateHooks, runPropCreateValidationHooks } from './hooks.ts'
 import { ensurePropGroup, ensurePropsUnion, insertInterfaceProp } from './prop-groups.ts'
 import { type ComponentProp, parseProps } from './prop-parser.ts'
+import { destructureProp, ensureTypeImports, normalizeDefaultValue, renderPropLine } from './props-common.ts'
 import { normalizeType } from './type-normalize.ts'
 import type { ComponentInfo, PropCreateOptions } from './types.ts'
 import { normalizeProjectRoot } from './utils/project.ts'
 
+export { deleteProp, updateProp } from './props-update.ts'
+
 export { parseProps }
 export type { ComponentProp }
 
-function normalizeDefaultValue(type: string, defaultValue: string): string {
-  if ((type.includes("'") || type.includes('"')) && !/^['"`]/.test(defaultValue)) {
-    return `'${defaultValue}'`
-  }
-
-  return defaultValue
-}
-
-function renderPropLine(propName: string, type: string, optional: boolean): string {
-  return `  ${propName}${optional ? '?' : ''}: ${type}`
-}
-
-function destructureProp(frontmatter: string, propName: string, defaultValue?: string): string {
-  const binding = defaultValue === undefined ? propName : `${propName} = ${defaultValue}`
-  const destructureMatch = frontmatter.match(/const\s*{([\s\S]*?)}\s*=\s*Astro\.props\s+as\s+Props/m)
-  const destructureBody = destructureMatch?.[1] ?? ''
-
-  if (new RegExp(`(?:^|,)\\s*${propName}(?:\\s*[=,:]|\\s*$)`).test(destructureBody)) {
-    return frontmatter
-  }
-
-  return frontmatter.replace(/const\s*{\s*/, `const { ${binding}, `)
-}
-
-function ensureTypeImports(frontmatter: string, type: string): string {
-  if (!type.includes('IconKey') || frontmatter.includes('import type { IconKey }')) {
-    return frontmatter
-  }
-
-  return frontmatter.replace(
-    /import type \{ HTMLAttributes \} from "astro\/types"\n/,
-    `import type { HTMLAttributes } from "astro/types"\nimport type { IconKey } from "@shared/ui/icon/Icon.astro"\n`,
+export async function createPropGroup(
+  componentName: string,
+  groupName: string,
+  extendsType: string,
+  cwd?: string,
+): Promise<ComponentInfo> {
+  return withComponentLock(componentName, cwd, () =>
+    createPropGroupUnlocked(componentName, groupName, extendsType, cwd),
   )
 }
 
-export async function createPropGroup(
+async function createPropGroupUnlocked(
   componentName: string,
   groupName: string,
   extendsType: string,
@@ -66,6 +46,18 @@ export async function createPropGroup(
 }
 
 export async function createProp(
+  componentName: string,
+  propName: string,
+  type: string,
+  defaultValue?: string,
+  options: PropCreateOptions = {},
+): Promise<ComponentInfo> {
+  return withComponentLock(componentName, options.cwd, () =>
+    createPropUnlocked(componentName, propName, type, defaultValue, options),
+  )
+}
+
+async function createPropUnlocked(
   componentName: string,
   propName: string,
   type: string,
@@ -105,6 +97,13 @@ export async function createProp(
   parts.frontmatter = ensureTypeImports(parts.frontmatter, normalizedType)
 
   await writeFile(files.markup, joinAstro(parts))
-  await runPropCreateHooks(componentName, propName, projectRoot)
+
+  try {
+    await runPropCreateHooks(info.name, propName, normalizedDefault, projectRoot)
+  } catch (error) {
+    await writeFile(files.markup, code)
+    throw error
+  }
+
   return info
 }
