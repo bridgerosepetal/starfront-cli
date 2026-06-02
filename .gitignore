@@ -11,6 +11,9 @@
 !tsconfig.json
 !tsup.config.ts
 
+!.github/
+!.github/workflows/
+!.github/workflows/**
 !src/
 !src/**
 !tests/
